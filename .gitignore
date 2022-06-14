@@ -1,0 +1,11 @@
+#node
+node_modules
+
+#IDE
+.idea
+
+#Compiled files
+lib
+
+#Dummy
+test.js
