@@ -62,8 +62,8 @@ export class ColumnParser {
       this.parsePrecision(dbType, parts[2], result);
     }
 
-    if (result['type'] === 'int') {
-      result['unsigned'] = dbType.includes('unsigned');
+    if (result['type'] === 'int' || result['type'] === 'float') {
+      result['unsigned'] = parts.input.includes('unsigned');
     }
   }
 
