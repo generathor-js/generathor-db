@@ -3,7 +3,7 @@ export type Column = {
   nullable: boolean;
   default: string;
   comment: string;
-  type: string
+  type: string;
   subType?: string;
   unsigned?: boolean;
   enum?: string[];
@@ -22,7 +22,7 @@ export type Relation = {
   references: string[];
   on: {
     database: string;
-    table: string
+    table: string;
   };
 };
 export type Item = {
@@ -32,7 +32,7 @@ export type Item = {
   indexes: Index[];
   relations: Relation[];
   primaryKey: {
-    columns: string[]
+    columns: string[];
   };
 };
 export type Items = Item[];

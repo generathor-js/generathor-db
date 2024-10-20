@@ -1,15 +1,34 @@
-import {Column} from '../../scanner';
+import { Column } from '../../scanner';
+import { MySQLColumn } from '../scanner';
 
 export class ColumnParser {
-  private types = {};
-  private subTypes = {};
+  private types: Record<string, string> = {};
+  private subTypes: Record<string, string> = {};
 
   public constructor() {
-    const mappings = {
-      string: ['varchar', 'text', 'string', 'char', 'enum', 'tinytext', 'mediumtext', 'longtext'],
+    const mappings: Record<string, string[]> = {
+      string: [
+        'varchar',
+        'text',
+        'string',
+        'char',
+        'enum',
+        'tinytext',
+        'mediumtext',
+        'longtext',
+      ],
       date: ['datetime', 'year', 'date', 'time', 'timestamp'],
       int: ['bigint', 'int', 'integer', 'tinyint', 'smallint', 'mediumint'],
-      float: ['float', 'decimal', 'numeric', 'dec', 'fixed', 'double', 'real', 'double precision'],
+      float: [
+        'float',
+        'decimal',
+        'numeric',
+        'dec',
+        'fixed',
+        'double',
+        'real',
+        'double precision',
+      ],
       boolean: ['longblob', 'blob', 'bit'],
     };
     for (const type in mappings) {
@@ -17,7 +36,7 @@ export class ColumnParser {
         this.types[dbType] = type;
       }
     }
-    const subTypes = {
+    const subTypes: Record<string, string[]> = {
       datetime: ['datetime', 'timestamp'],
       date: ['date'],
       year: ['year'],
@@ -30,7 +49,7 @@ export class ColumnParser {
     }
   }
 
-  public parse(column: Record<string, any>): Column {
+  public parse(column: MySQLColumn): Column {
     const result: Partial<Column> = {
       name: column['Field'],
       nullable: column['Null'] === 'YES',
@@ -43,15 +62,18 @@ export class ColumnParser {
     return result as Column;
   }
 
-  private parseAutoincrement(data, result) {
+  private parseAutoincrement(data: string, result: Partial<Column>) {
     if (data === 'auto_increment') {
       result['autoincrement'] = true;
     }
   }
 
-  private parseType(data, result) {
-    const parts = /^(\w+)(?:\(([^\)]+)\))?/.exec(data);
-    let dbType = parts[1].toLowerCase();
+  private parseType(data: string, result: Partial<Column>) {
+    const parts: RegExpExecArray = /^(\w+)(?:\(([^\)]+)))?/.exec(
+      data
+    ) as RegExpExecArray;
+
+    const dbType = parts[1].toLowerCase();
 
     result['type'] = this.types[dbType] || dbType;
     if (this.subTypes[dbType]) {
@@ -65,9 +87,20 @@ export class ColumnParser {
     if (result['type'] === 'int' || result['type'] === 'float') {
       result['unsigned'] = parts.input.includes('unsigned');
     }
+
+    if (result['scale']) {
+      console.log(data);
+      console.log(parts);
+      console.log(result);
+      process.exit(1);
+    }
   }
 
-  private parsePrecision(dbType, data, result) {
+  private parsePrecision(
+    dbType: string,
+    data: string,
+    result: Partial<Column>
+  ) {
     const precision = data.replace(/'/g, '').split(',');
 
     if (dbType === 'enum') {
@@ -77,7 +110,7 @@ export class ColumnParser {
     }
 
     const size = parseInt(precision[0]);
-    const boolTypes = {
+    const boolTypes: Record<string, boolean> = {
       bit: true,
       tinyint: true,
     };

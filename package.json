@@ -9,7 +9,11 @@
     "url": "git://github.com/dmichelena/generathor-source-db.git"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "format": "prettier --write 'src/**/*.{ts,tsx}'",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "prepare": "husky"
   },
   "files": [
     "lib/**/*"
@@ -17,9 +21,14 @@
   "author": "Diego Michelena",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^17.0.31",
+    "@eslint/js": "^9.12.0",
+    "@types/node": "^22.7.6",
+    "eslint": "^9.12.0",
+    "husky": "^9.1.6",
     "mysql2": "^3.11.3",
-    "typescript": "^4.6.4"
+    "prettier": "^3.3.3",
+    "typescript": "^4.6.4",
+    "typescript-eslint": "^8.9.0"
   },
   "dependencies": {
     "generathor": "^1.0.6"

@@ -1,5 +1,5 @@
-import {Column, Item, Items, Scanner as BaseScanner} from '../scanner';
-import {ColumnParser} from './parsers/column';
+import { Column, Item, Items, Scanner as BaseScanner } from '../scanner';
+import { ColumnParser } from './parsers/column';
 
 export type MySQLConfiguration = {
   host: string;
@@ -9,16 +9,48 @@ export type MySQLConfiguration = {
   password: string;
 };
 
-type Records = Record<string, any>[];
+type Relation = {
+  type: 'belongs-to' | 'has-many';
+  columns: string[];
+  references: string[];
+  on: {
+    database: string;
+    table: string;
+  };
+};
+
+export type MySQLColumn = {
+  Field: string;
+  Type: string;
+  Null: string;
+  Key: string;
+  Default: string;
+  Extra: string;
+  Comment: string;
+};
+
+interface MySQLTableDefinition {
+  Table: string;
+  'Create Table': string;
+}
+
+interface MySQLTables {
+  [key: string]: string;
+  Table_type: 'BASE TABLE';
+}
 
 export class Scanner implements BaseScanner {
   protected connection;
   protected database: string;
   protected excludes: Record<string, boolean>;
-  protected hasManyRelations: Record<string, any>;
+  protected hasManyRelations: Record<string, Relation[]>;
   protected columnParser: ColumnParser;
 
-  public constructor(configuration: MySQLConfiguration, columnParser: ColumnParser, excludes?: string[]) {
+  public constructor(
+    configuration: MySQLConfiguration,
+    columnParser: ColumnParser,
+    excludes?: string[]
+  ) {
     const mysql = require('mysql2');
     this.connection = mysql.createConnection(configuration);
     this.database = configuration.database;
@@ -42,16 +74,13 @@ export class Scanner implements BaseScanner {
         continue;
       }
 
-      items.push(
-        await this.table(tableName)
-      );
+      items.push(await this.table(tableName));
     }
 
-    return items.map(item => {
+    return items.map((item) => {
       const table = item.table;
       if (this.hasManyRelations[table]) {
-        item.relations = item.relations
-          .concat(this.hasManyRelations[table]);
+        item.relations = item.relations.concat(this.hasManyRelations[table]);
       }
 
       return item;
@@ -59,7 +88,7 @@ export class Scanner implements BaseScanner {
   }
 
   private tables() {
-    return this.query(
+    return this.query<MySQLTables>(
       `SHOW FULL TABLES FROM ${this.database} WHERE Table_type='BASE TABLE'`
     );
   }
@@ -71,7 +100,7 @@ export class Scanner implements BaseScanner {
       columns: await this.columns(name),
       indexes: [],
       relations: [],
-      primaryKey: null,
+      primaryKey: { columns: [] },
     };
     await this.loadConstraints(name, item);
 
@@ -79,15 +108,15 @@ export class Scanner implements BaseScanner {
   }
 
   private async columns(table: string): Promise<Column[]> {
-    const columns = await this.query(
+    const columns = await this.query<MySQLColumn>(
       'SHOW FULL COLUMNS FROM ' + table
     );
 
-    return columns.map((column: Column) => this.columnParser.parse(column));
+    return columns.map((column) => this.columnParser.parse(column));
   }
 
-  private async loadConstraints(table: string, item: Record<string, any>) {
-    const record = await this.query(
+  private async loadConstraints(table: string, item: Item) {
+    const record = await this.query<MySQLTableDefinition>(
       'SHOW CREATE TABLE ' + table
     );
     const sql = record[0]['Create Table'].replace(/`/g, '');
@@ -96,15 +125,19 @@ export class Scanner implements BaseScanner {
     this.loadRelations(table, sql, item);
   }
 
-  private loadRelations(table: string, createTableQuery: string, item: Record<string, any>) {
-    const relations = [...createTableQuery.matchAll(/FOREIGN KEY\s+\(([^\)]+)\)\s+REFERENCES\s+([^\(^\s]+)\s*\(([^\)]+)\)/g)];
+  private loadRelations(table: string, createTableQuery: string, item: Item) {
+    const relations = [
+      ...createTableQuery.matchAll(
+        /FOREIGN KEY\s+\(([^)]+)\)\s+REFERENCES\s+([^(^\s]+)\s*\(([^)]+)\)/g
+      ),
+    ];
     if (relations.length === 0) {
       return;
     }
 
     item['relations'] = relations.map((relation) => {
       const tableReference = this.resolveForeignTable(relation[2]);
-      const result = {
+      const result: Relation = {
         type: 'belongs-to',
         columns: this.columnize(relation[1]),
         references: this.columnize(relation[3]),
@@ -112,11 +145,11 @@ export class Scanner implements BaseScanner {
       };
       this.storeHasManyRelation(table, result);
 
-      return result
+      return result;
     });
   }
 
-  private storeHasManyRelation(table: string, belongsToRelation) {
+  private storeHasManyRelation(table: string, belongsToRelation: Relation) {
     if (belongsToRelation.on.database !== this.database) {
       return;
     }
@@ -136,7 +169,7 @@ export class Scanner implements BaseScanner {
     });
   }
 
-  private resolveForeignTable(detail) {
+  private resolveForeignTable(detail: string) {
     const parts = detail.split('.');
 
     if (parts.length == 2) {
@@ -152,8 +185,12 @@ export class Scanner implements BaseScanner {
     };
   }
 
-  private loadIndexes(createTableQuery: string, item: Record<string, any>) {
-    const indexes = [...createTableQuery.matchAll(/\s*(UNIQUE)?\s*(KEY|INDEX)\s+(\w+)\s+\(([^\)]+)\)/g)];
+  private loadIndexes(createTableQuery: string, item: Item) {
+    const indexes = [
+      ...createTableQuery.matchAll(
+        /\s*(UNIQUE)?\s*(KEY|INDEX)\s+(\w+)\s+\(([^)]+)\)/g
+      ),
+    ];
     if (indexes.length === 0) {
       return;
     }
@@ -164,29 +201,33 @@ export class Scanner implements BaseScanner {
         type: type.toLowerCase() === 'unique' ? 'unique' : 'index',
         columns: this.columnize(index[4]),
         index: index[3],
-      }
+      };
     });
   }
 
-  private loadPrimaryKeys(createTableQuery: string, item: Record<string, any>) {
-    const pk = [...createTableQuery.matchAll(/\s*(PRIMARY KEY)\s+\(([^\)]+)\)/g)];
+  private loadPrimaryKeys(createTableQuery: string, item: Item) {
+    const pk = [
+      ...createTableQuery.matchAll(/\s*(PRIMARY KEY)\s+\(([^)]+)\)/g),
+    ];
     if (pk.length === 0) {
       return;
     }
 
     item['primaryKey'] = {
-      columns: this.columnize(pk[0][2])
+      columns: this.columnize(pk[0][2]),
     };
   }
 
-  private columnize(columns) {
-    return columns.trim().split(',').map(column => column.trim());
+  private columnize(columns: string) {
+    return columns
+      .trim()
+      .split(',')
+      .map((column) => column.trim());
   }
 
-
-  private query(query, params = []): Promise<Records> {
+  private query<T>(query: string, params = []): Promise<T[]> {
     return new Promise((resolve, reject) => {
-      this.connection.query(query, params, (err, results) => {
+      this.connection.query(query, params, (err: Error, results: T[]) => {
         if (err) {
           return reject(err);
         }
