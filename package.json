@@ -1,12 +1,12 @@
 {
-  "name": "generathor-source-db-testing",
-  "version": "1.0.7",
+  "name": "generathor-db",
+  "version": "1.0.0",
   "description": "Use this to get database info",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dmichelena/generathor-source-db.git"
+    "url": "git://github.com/generathor-js/generathor-db.git"
   },
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,7 @@
     "prepare": "husky"
   },
   "files": [
-    "lib/**/*"
+    "dist/**/*"
   ],
   "author": "Diego Michelena",
   "license": "MIT",
@@ -31,6 +31,6 @@
     "typescript-eslint": "^8.9.0"
   },
   "dependencies": {
-    "generathor": "^1.0.6"
+    "generathor": "^1.0.11"
   }
 }
