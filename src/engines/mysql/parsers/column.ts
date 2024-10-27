@@ -69,7 +69,7 @@ export class ColumnParser {
   }
 
   private parseType(data: string, result: Partial<Column>) {
-    const parts: RegExpExecArray = /^(\w+)(?:\(([^\)]+)))?/.exec(
+    const parts: RegExpExecArray = /^(\w+)(?:\(([^)]+)\))?/.exec(
       data
     ) as RegExpExecArray;
 
@@ -86,13 +86,6 @@ export class ColumnParser {
 
     if (result['type'] === 'int' || result['type'] === 'float') {
       result['unsigned'] = parts.input.includes('unsigned');
-    }
-
-    if (result['scale']) {
-      console.log(data);
-      console.log(parts);
-      console.log(result);
-      process.exit(1);
     }
   }
 
