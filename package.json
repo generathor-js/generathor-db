@@ -1,6 +1,6 @@
 {
   "name": "generathor-db",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Use this to get database info",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
