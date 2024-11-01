@@ -1,6 +1,6 @@
 {
   "name": "generathor-db",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Use this to get database info",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,12 +25,14 @@
     "@types/node": "^22.7.6",
     "eslint": "^9.12.0",
     "husky": "^9.1.6",
-    "mysql2": "^3.11.3",
     "prettier": "^3.3.3",
     "typescript": "^4.6.4",
     "typescript-eslint": "^8.9.0"
   },
-  "dependencies": {
+  "peerDependencies": {
     "generathor": "^1.0.11"
+  },
+  "optionalDependencies": {
+    "mysql2": "^3.11.3"
   }
 }
